@@ -8,9 +8,6 @@
     "dev": "nodemon server.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "engines": {
-    "node": "*"
-  },
   "author": "",
   "license": "ISC",
   "dependencies": {
