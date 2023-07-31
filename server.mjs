@@ -1,7 +1,14 @@
 import express from "express";
 import { customAlphabet } from 'nanoid';
-
 const nanoid = customAlphabet('1234567890', 20)
+
+import { MongoClient } from 'mongodb';
+import './config/index.mjs'
+
+const mongodbURI = `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@cluster0.uriswah.mongodb.net/?retryWrites=true&w=majority`
+const client = new MongoClient(mongodbURI);
+const database = client.db('ecom');
+const productsCollection = database.collection('products');
 
 const app = express();
 
@@ -71,33 +78,39 @@ const products = [
 
 
 // Add Product
-  app.post("/product", (req, res) => {
-    // {
-    //   id: 212342, // always a number
-    //   name: "abc product",
-    //   price: "$23.12",
-    //   description: "abc product description"
-    // }
+app.post("/product", async (req, res) => {
+
+  // {
+  //   id: 212342, // always a number
+  //   name: "abc product",
+  //   price: "$23.12",
+  //   description: "abc product description"
+  // }
+
+
+  if (!req.body.name
+    || !req.body.price
+    || !req.body.description) {
+
+    res.status(403).send(`
+      required parameter missing. example JSON request body:
+      {
+        name: "abc product",
+        price: "$23.12",
+        description: "abc product description"
+      }`);
+  }
+
+  const doc = {
+    id: nanoid(),
+    name: req.body.name,
+    price: req.body.price,
+    description: req.body.description,
+  }
+  const result = await productsCollection.insertOne(doc);
   
-    if (!req.body.name || !req.body.price || !req.body.description) {
-      res.status(403).send(`
-        required parameter missing. example JSON request body:
-        {
-          name: "abc product",
-          price: "$23.12",
-          description: "abc product description"
-        }`);
-      return;
-    } 
-    products.push({
-      id: nanoid(),
-      name: req.body.name,
-      price: req.body.price,
-      description: req.body.description,
-    });
-  
-    res.status(201).send({ message: "created product" });
-  });
+  res.status(201).send({ message: "created product" });
+});
 
 
 
