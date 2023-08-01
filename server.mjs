@@ -22,35 +22,8 @@ app.get("/", (req, res) => {
     res.send("Welcome to my Shop");
   });
 
-
-// create a products variable
-const products = [
-    {
-      id: "16", // always a number
-      name: "abc product",
-      price: "$23.12",
-      description: "abc product description",
-    },
-    {
-      id: "17", // always a number
-      name: "good product",
-      price: "$59.12",
-      description: "something product description",
-    },
-];
-
-
-
+  
 // Get All Data
-  // app.get("/products", (req, res) => {
-  //   res.send(
-  //       {
-  //           message: "All products list",
-  //           data: products,
-  //       }
-  //   );
-  // });
-
   app.get("/products", async (req, res) => {
     try {
       const result = await productsCollection.find({}).toArray();
@@ -64,15 +37,15 @@ const products = [
 
 
 //   Get Single product
-  app.get("/product/:id", (req, res) => {
+  app.get("/product/:id", async (req, res) => {
     const id = req.params.id;
-    console.log("id", id);
-    console.log("id type", typeof id);
-  
+    // console.log("id", id);
+    const resultAll = await productsCollection.find({}).toArray();
+
     let isFound = false;
   
-    for (let i = 0; i < products.length; i++) {
-      if (products[i].id === id) {
+    for (let i = 0; i < resultAll.length; i++) {
+      if (resultAll[i]._id == id) {
         console.log("product found...");
         isFound = i;
         break;
@@ -87,7 +60,7 @@ const products = [
     } else {
       res.send({
         message: "product found at index: " + isFound,
-        data: products[isFound],
+        data: resultAll[isFound],
       });
     }
   });
@@ -96,15 +69,6 @@ const products = [
 
 // Add Product
 app.post("/product", async (req, res) => {
-
-  // {
-  //   id: 212342, // always a number
-  //   name: "abc product",
-  //   price: "$23.12",
-  //   description: "abc product description"
-  // }
-
-
   if (!req.body.name
     || !req.body.price
     || !req.body.description) {
@@ -118,22 +82,26 @@ app.post("/product", async (req, res) => {
       }`);
   }
 
-  const doc = {
-    id: nanoid(),
-    name: req.body.name,
-    price: req.body.price,
-    description: req.body.description,
+  try {
+    const doc = {
+      id: nanoid(),
+      name: req.body.name,
+      price: req.body.price,
+      description: req.body.description,
+    }
+    const result = await productsCollection.insertOne(doc);
+    res.status(201).send({ message: "created product" });
+  } catch (error) {
+    console.error("Error while Added product: ", error);
+    res.status(500).send("Error while Added product");
   }
-  const result = await productsCollection.insertOne(doc);
-
-  res.status(201).send({ message: "created product" });
 });
 
 
 
 
 // Edit a product 
-  app.put("/product/:id", (req, res) => {
+  app.put("/product/:id", async (req, res) => {
   if (!req.body.name && !req.body.price && !req.body.description) {
     res.status(403).send(`
       required parameter missing.
@@ -146,29 +114,26 @@ app.post("/product", async (req, res) => {
       }`);
   }
 
-  let isFound = false;
-
-  for (let i = 0; i < products.length; i++) {
-    if (products[i].id === req.params.id) {
-      isFound = i;
-      break;
+  try {
+    const id = req.params.id;
+    console.log(id);
+    const getAll = await productsCollection.find({}).toArray();
+  
+    for (let i = 0; i < getAll.length; i++) {
+      const strId = getAll[i]._id.toString();
+      if (strId === id) {
+        console.log("product found...");
+        const result = await productsCollection.updateOne({_id: getAll[i]._id}, {$set: {name: req.body.name, price: req.body.price, description: req.body.description}});
+        res.send({
+          message: "product found at index: ",
+          data: result,
+        });
+        break;
+      }
     }
-  }
-
-  if (isFound === false) {
-    res.status(404);
-    res.send({
-      message: "product not found",
-    });
-  } else {
-    if (req.body.name) products[isFound].name = req.body.name;
-    if (req.body.price) products[isFound].price = req.body.price;
-    if (req.body.description) products[isFound].description = req.body.description;
-
-    res.send({
-      message: "product is updated with id: " + products[isFound].id,
-      data: products[isFound],
-    });
+  } catch (error) {
+    console.error("Error getting products:", error);
+    res.status(500).send("Error getting products");
   }
 });
 
@@ -177,26 +142,27 @@ app.post("/product", async (req, res) => {
 
 
 // Delete a product
-app.delete("/product/:id", (req, res) => {
-  let isFound = false;
-
-  for (let i = 0; i < products.length; i++) {
-    if (products[i].id === req.params.id) {
-      isFound = i;
-      break;
+app.delete("/product/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    console.log(id);
+    const getAll = await productsCollection.find({}).toArray();
+  
+    for (let i = 0; i < getAll.length; i++) {
+      const strId = getAll[i]._id.toString();
+      if (strId === id) {
+        console.log("product found...");
+        const result = await productsCollection.deleteOne({_id: getAll[i]._id});
+        res.send({
+          message: "product found at index: ",
+          data: result,
+        });
+        break;
+      }
     }
-  }
-
-  if (isFound === false) {
-    res.status(404);
-    res.send({
-      message: "product not found",
-    });
-  } else {
-    products.splice(isFound, 1);
-    res.send({
-      message: "product is deleted",
-    });
+  } catch (error) {
+    console.error("Error getting products:", error);
+    res.status(500).send("Error getting products");
   }
 });
 
